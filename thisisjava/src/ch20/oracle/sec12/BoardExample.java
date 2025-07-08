@@ -1,5 +1,6 @@
 package ch20.oracle.sec12;
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -125,11 +126,7 @@ public class BoardExample {
 		String boardWriter = scanner.nextLine();
 		
 		// 보조메뉴 출력
-		System.out.println("-----------------------------------------------------------------------");
-		System.out.println("보조메뉴: 1.Ok | 2.Cancel");
-		System.out.print("메뉴선택: ");
-		String menuNo = scanner.nextLine();
-		if(menuNo.equals("1")) {	// 1. OK이면 실제 DB의 Boards테이블에 입력한 값을 등록
+		if(printSubMenu().equals("1")) {	// 1. OK이면 실제 DB의 Boards테이블에 입력한 값을 등록
 			try {		
 				// 게시물 등록하는 sql
 				String sql = "" +
@@ -182,7 +179,17 @@ public class BoardExample {
 				System.out.println("내용: " + rs.getString("bcontent"));
 				System.out.println("작성자: " + rs.getString("bwriter"));
 				System.out.println("날짜: " + rs.getDate("bdate"));
-				System.out.println("##############");
+				System.out.println("----------------------------------");
+				
+				System.out.println("보조메뉴: 1.Update | 2.Delete | 3.List");
+				System.out.print("메뉴선택: ");
+				String menuNo = scanner.nextLine();
+				
+				if(menuNo.equals("1")) {
+					update(bno);
+				} else if(menuNo.equals("2")) {
+					delete(bno);
+				}
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -191,12 +198,99 @@ public class BoardExample {
 		
 		list();
 	}
+	
+	/**
+	 * 보조메뉴 출력
+	 * @return
+	 */
+	private String printSubMenu() {
+		System.out.println("-----------------------------------------------------------------------");
+		System.out.println("보조메뉴: 1.Ok | 2.Cancel");
+		System.out.print("메뉴선택: ");
+		return scanner.nextLine();
+	}
+	
+	/**
+	 * 특정 게시글 수정 기능
+	 */
+	private void update(int bno) {
+		//수정 내용 입력 받기
+		System.out.println("[수정 내용 입력]");
+		System.out.print("제목: "); 	
+		String bTitle = scanner.nextLine();
+		System.out.print("내용: "); 	
+		String bContent = scanner.nextLine();
+		System.out.print("작성자: "); 	
+		String bWriter = scanner.nextLine();
+		
+		// 보조메뉴 출력
+		if(printSubMenu().equals("1")) {
+			try {
+				// boards 테이블에서 게시물 정보 수정
+				String sql = new StringBuilder()
+						.append("UPDATE           ")
+						.append("  boards         ")
+						.append("SET              ")		
+						.append("  btitle = ?,    ")	// 1
+						.append("  bcontent = ?,  ")	// 2
+						.append("  bwriter = ?    ")	// 3
+						.append("WHERE            ")	 
+						.append("  bno = ?        ")	// 4
+						.toString();
+				//PreparedStatement 얻기 및 값 지정
+				PreparedStatement pstmt = conn.prepareStatement(sql);
+				pstmt.setString(1, bTitle);
+				pstmt.setString(2, bContent);
+				pstmt.setString(3, bWriter);
+				pstmt.setInt(4, bno);
+				
+				//SQL문 실행
+				int rows = pstmt.executeUpdate();
+				pstmt.close();
+			} catch(Exception e) {
+				e.printStackTrace();
+				exit();
+			}
+		}
+	}
+	/**
+	 * 특정 게시글 삭제 기능
+	 */
+	private void delete(int bno) {
+		//boards 테이블에 게시물 정보 삭제
+		try {
+			String sql = "DELETE FROM boards WHERE bno=?";
+			PreparedStatement pstmt = conn.prepareStatement(sql);
+			pstmt.setInt(1, bno);
+			
+			pstmt.executeUpdate();
+			pstmt.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			exit();
+		}
+		
+		//게시물 목록 출력		
+		list();
+	}
 	/**
 	 * 메뉴 3번의 게시판 삭제 기능(clear)
 	 */
 	private void clear() {
-		System.out.println("게시판 삭제 clear 메소드 실행됨");
-		
+		if(printSubMenu().equals("1")) {
+			//boards 테이블에 게시물 정보 전체 삭제
+			try {
+				String sql = "TRUNCATE TABLE boards";
+				PreparedStatement pstmt = conn.prepareStatement(sql);
+				pstmt.executeUpdate();
+				pstmt.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+				exit();
+			}
+		}
+			
+		//게시물 목록 출력
 		list();
 	}
 	/**
