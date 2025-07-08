@@ -1,4 +1,4 @@
-package ch21.oracle.sec05;
+package ch20.oracle.sec05;
 
 import java.sql.*;
 

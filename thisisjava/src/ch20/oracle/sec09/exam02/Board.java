@@ -1,4 +1,4 @@
-package ch21.oracle.sec09.exam02;
+package ch20.oracle.sec09.exam02;
 
 import java.util.Date;
 import java.sql.Blob;

@@ -1,4 +1,4 @@
-package ch21.oracle.sec08;
+package ch20.oracle.sec08;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

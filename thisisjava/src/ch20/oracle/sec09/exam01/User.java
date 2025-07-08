@@ -1,4 +1,4 @@
-package ch21.oracle.sec09.exam01;
+package ch20.oracle.sec09.exam01;
 
 import lombok.Data;
 
