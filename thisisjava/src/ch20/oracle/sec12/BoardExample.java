@@ -83,7 +83,7 @@ public class BoardExample {
 			sql += " ORDER BY bno DESC";
 			
 			//PreparedStatement 얻기 및 값 지정
-			//pstmt: DB에 보랠 sql문을 준비하고 실행하는 역할을 하는 객체
+			//pstmt: DB에 보낼 sql문을 준비하고 실행하는 역할을 하는 객체
 			PreparedStatement pstmt = conn.prepareStatement(sql); 
 			//rs: 그 sql문을 실행해서 나온 결과를 담는 객체
 			ResultSet rs = pstmt.executeQuery(); 
@@ -184,8 +184,8 @@ public class BoardExample {
 		// 보조메뉴 출력
 		if(printSubMenu().equals("1")) {
 			// boards테이블에서 bno에 맞는 게시물을 가져와서 출력
-			String sql = "" +
-					"SELECT userpassword " +
+			String sql = "" +      //사용자가 아이디와 비번을 입력하면 입력한 아이디가 users테이블에 있는지 찾고
+					"SELECT userpassword " +  //해당하는 비번값을 가져오는 쿼리
 					"FROM users WHERE userid = ?";
 			try {
 				//PreparedStatement 얻기 및 값 지정
@@ -195,9 +195,11 @@ public class BoardExample {
 				//select문 실행
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) { // cursor 포인트가 1행 이동
-					String dbPassword = rs.getString("userpassword");
+					String dbPassword = rs.getString("userpassword");  //DB에 저장된 비밀번호를 가져오는 코드
+					//DB에 비밀번호가 정상적으로 저장되어있는지 확인하고
+					//사용자가 입력한 비밀번호와 DB의 비밀번호가 일치하는지 비교
 					if(dbPassword != null && dbPassword.equals(userPassword)) { // 로그인 성공한 경우
-						loginId = userId;
+						loginId = userId;  //로그인에 성공하면 현재 로그인한 사용자의 아이디를 저장
 					} else {		// 비밀번호가 틀린 경우
 						System.out.println("비밀번호가 일치하지 않습니다.");
 						join();
@@ -248,7 +250,7 @@ public class BoardExample {
 				pstmt.setInt(4, Integer.parseInt(userAge));		 // number
 				pstmt.setString(5, userEmail);		 // varchar2
 				//SQL문 실행
-				int rows = pstmt.executeUpdate();
+				int rows = pstmt.executeUpdate();  //실제 DB에 추가된 행의 수를 의미
 				
 				pstmt.close();
 			} catch(SQLException e) {
@@ -275,7 +277,7 @@ public class BoardExample {
 		String boardContent = scanner.nextLine();
 		
 		// 로그인 했을 경우 작성자 생략
-		String boardWriter = "";
+		String boardWriter = "";  //작성자 이름을 저장할 변수를 미리 선언(초기화)
 		if (loginId == null) { // 로그인 안 했을 경우
 			System.out.print("작성자: ");
 			boardWriter = scanner.nextLine();
