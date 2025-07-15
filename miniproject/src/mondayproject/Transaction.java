@@ -5,16 +5,16 @@ import java.util.Date;
 
 @Data
 public class Transaction {
-    private String transactionId;
-    private String accountId;
-    private String transactionType;
-    private double amount;
-    private double balanceAfter;
-    private String counterpartAccount;
-    private String counterpartName;        // 새로 추가: 상대방 이름
-    private String depositorName;          // 새로 추가: 입금자명
-    private String transactionMemo;        // 새로 추가: 거래 메모
-    private Date transactionDate;
+    private String transactionId;		// 거래번호
+    private String accountId;			// 거래가 발생한 계좌번호
+    private String transactionType;		// 거래 유형
+    private double amount;				// 거래 금액
+    private double balanceAfter;		// 거래 후 잔액
+    private String counterpartAccount;	// 상대방 계좌번호
+    private String counterpartName;     // 상대방 이름
+    private String depositorName;       // 입금자명
+    private String transactionMemo;     // 거래 메모
+    private Date transactionDate;		// 거래 발생 시각
 
     public Transaction() {}
 
@@ -41,7 +41,7 @@ public class Transaction {
         this.transactionDate = new Date();
     }
     
-    // 완전한 거래내역용 생성자 (새로 추가)
+    // 완전한 거래내역용 생성자 
     public Transaction(String transactionId, String accountId, String transactionType, 
                        double amount, double balanceAfter, String counterpartAccount,
                        String counterpartName, String depositorName, String transactionMemo) {

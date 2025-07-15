@@ -5,13 +5,13 @@ import java.util.Date;
 
 @Data
 public class Account {
-    private String accountId;
-    private String accountName;
-    private String accountType;
-    private String accountPassword;
-    private double balance;
-    private String userId;
-    private Date createDate;
+    private String accountId;		// 계좌번호
+    private String accountName;		// 계좌명
+    private String accountType;		// 계좌종류
+    private String accountPassword;	// 계좌 비밀번호
+    private double balance;			// 계좌 잔액
+    private String userId;			// 계좌 소유자 ID
+    private Date createDate;		// 계좌 개설일
 
     public Account() {}
 
