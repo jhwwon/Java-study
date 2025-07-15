@@ -133,7 +133,7 @@ public class TransactionManager {
     // 특정 페이지의 거래내역 표시 (최신 거래가 가장 큰 번호)
     public void displayTransactionPage(String accountId, int currentPage, int pageSize, int totalCount, int totalPages) {
         System.out.println("\n[거래내역] 계좌번호: " + accountId + " (" + accountManager.getAccountHolderName(accountId) + ")");
-        System.out.println("📊 [" + currentPage + "/" + totalPages + " 페이지] 총 " + totalCount + "건");
+        System.out.println(currentPage + "/" + totalPages + " 페이지] 총 " + totalCount + "건");
         System.out.println("====================================================================================");
 
         // Oracle 페이징 쿼리 (ROWNUM 사용)
@@ -174,7 +174,7 @@ public class TransactionManager {
                         memo = "-";
 
                     // 순번 표시 - 최신 거래가 가장 큰 번호
-                    System.out.println("📋 " + displayIndex + "번째 거래");
+                    System.out.println(displayIndex + "번째 거래");
                     System.out.println("거래번호: " + rs.getString("transaction_id"));
                     System.out.println("거래구분: " + transactionType);
                     System.out.println("상대방정보: " + counterpartDisplay);
