@@ -4,8 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+import java.text.DecimalFormat;  //숫자 포맷팅
+import java.text.SimpleDateFormat;  //날짜 포맷팅
 
 public class BankUtils {
     private static DecimalFormat currencyFormat = new DecimalFormat("#,###");
@@ -29,7 +29,7 @@ public class BankUtils {
             if (rs.next())
                 return rs.getString(1);
         } catch (SQLException e) {
-            System.out.println("❌ 계좌번호 생성 오류: " + e.getMessage());
+            System.out.println("계좌번호 생성 오류: " + e.getMessage());
         }
         return null;
     }
@@ -42,7 +42,7 @@ public class BankUtils {
             if (rs.next())
                 return rs.getString(1);
         } catch (SQLException e) {
-            System.out.println("❌ 거래번호 생성 오류: " + e.getMessage());
+            System.out.println("거래번호 생성 오류: " + e.getMessage());
         }
         return null;
     }

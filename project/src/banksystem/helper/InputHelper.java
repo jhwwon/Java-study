@@ -2,16 +2,22 @@ package banksystem.helper;
 
 import java.sql.Connection;
 import java.util.Scanner;
+import banksystem.manager.AccountManager;  
 
 public class InputHelper {
     private Scanner scanner;
     private ValidationHelper validator;
     private Connection conn;
+    private AccountManager accountManager;
 
     public InputHelper(Scanner scanner, ValidationHelper validator, Connection conn) {
         this.scanner = scanner;
         this.validator = validator;
         this.conn = conn;
+    }
+    
+    public void setAccountManager(AccountManager accountManager) {
+        this.accountManager = accountManager;
     }
 
     // 기본 입력 메소드 - 빈 값 입력 방지
@@ -19,12 +25,11 @@ public class InputHelper {
         String input;
         do {
             System.out.print(prompt);
-            input = scanner.nextLine().trim();
+            input = scanner.nextLine().trim();  // 사용자로부터 한줄 입력받은 후 앞뒤 공백 제거
         } while (input.isEmpty());
         return input;
     }
 
-    // 보조 메뉴
     public boolean confirmAction() {
         System.out.println("보조메뉴: 1.확인 | 2.취소");
         System.out.print("메뉴선택: ");
@@ -42,8 +47,8 @@ public class InputHelper {
         } while (true);
     }
 
-    // 사용자 이름 입력 및 검증
-    public String inputUserName() {
+    // 이름 입력 및 검증
+    public String inputName() {
         String userName;
         do {
             userName = input("이름: ");
@@ -53,8 +58,8 @@ public class InputHelper {
         } while (true);
     }
 
-    // 사용자 비밀번호 입력 및 검증
-    public String inputUserPassword(String userId) {
+    // 비밀번호 입력 및 검증
+    public String inputPassword(String userId) {
         String password;
         do {
             password = input("비밀번호 (7~12자리, 영문+숫자): ");
@@ -79,7 +84,7 @@ public class InputHelper {
     public String inputPhone() {
         String phone;
         do {
-            phone = input("전화번호 (010-0000-0000): ");
+            phone = input("전화번호: ");
             if (validator.validatePhone(phone)) {
                 return phone;
             }
@@ -105,42 +110,61 @@ public class InputHelper {
                 System.out.print(prompt);
                 amount = Double.parseDouble(scanner.nextLine());
                 if (amount < 1000) {
-                    System.out.println("❌ 금액은 1,000원 이상이어야 합니다.");
+                    System.out.println("금액은 1,000원 이상이어야 합니다.");
                     continue;
                 }
                 if (amount > 5000000) {
-                    System.out.println("❌ 금액이 너무 큽니다. (최대 500만원)");
+                    System.out.println("금액이 너무 큽니다. (최대 500만원)");
                     continue;
                 }
                 return amount;
             } catch (NumberFormatException e) {
-                System.out.println("❌ 올바른 숫자를 입력해주세요.");
+                System.out.println("올바른 숫자를 입력해주세요.");
             }
         } while (true);
     }
 
-    // 계좌번호 입력 및 검증 (AccountManager 의존성 필요)
+    // 계좌번호 입력 및 검증
     public String inputAccountId(String prompt, boolean ownOnly, String loginId) {
         String accountId;
         do {
             accountId = input(prompt);
-            // 실제 검증은 AccountManager에서 수행
-            return accountId; // 단순 반환, 검증은 호출하는 곳에서 처리
+            
+            // accountManager가 설정되지 않았으면 그냥 반환 (기존 동작)
+            if (accountManager == null) {
+                return accountId;
+            }
+            
+            // 1. 계좌 존재 여부 확인
+            if (!accountManager.accountExists(accountId)) {
+                System.out.println("존재하지 않는 계좌번호입니다.");
+                continue;
+            }
+            
+            // 2. 본인 계좌 여부 확인 (ownOnly가 true일 때만)
+            if (ownOnly && !accountManager.isMyAccount(accountId, loginId)) {
+                System.out.println("본인 계좌만 입력 가능합니다.");
+                continue;
+            }
+            
+            // 모든 검증 통과
+            return accountId;
+            
         } while (true);
     }
 
-    // 계좌 비밀번호 확인 (AccountManager 의존성 필요)
+    // 계좌 비밀번호 확인
     public boolean checkPassword(String accountId) {
         String password;
         do {
             System.out.print("계좌 비밀번호 (4자리): ");
             password = scanner.nextLine();
             if (password.length() != 4 || !password.matches("\\d{4}")) {
-                System.out.println("❌ 계좌 비밀번호는 4자리 숫자여야 합니다.");
+                System.out.println("계좌 비밀번호는 4자리 숫자여야 합니다.");
                 continue;
             }
-            // 실제 검증은 AccountManager에서 수행
-            return true; // 임시 반환, 실제 검증은 호출하는 곳에서 처리
+            // 실제 검증은 AccountManager
+            return true;  
         } while (true);
     }
 
@@ -148,17 +172,16 @@ public class InputHelper {
     public String inputNewUserPassword(String loginId) {
         String input;
         do {
-            System.out.print("새 비밀번호 (7~12자리, 영문+숫자) 또는 '-' (기존 유지): ");
+            System.out.print("새 비밀번호 (7~12자리, 영문+숫자) 또는 엔터 (기존 유지): ");
             input = scanner.nextLine().trim();
 
-            if ("-".equals(input)) {
-                return null; // 변경하지 않음을 의미
+            if (input.isEmpty()) {  
+                return null;
             }
 
             if (validator.validateUserPassword(input, loginId)) {
                 return input;
             }
-            // 유효성 검사 실패시 다시 입력
         } while (true);
     }
 
@@ -166,17 +189,16 @@ public class InputHelper {
     public String inputNewUserEmail(String loginId) {
         String input;
         do {
-            System.out.print("새 이메일 또는 '-' (기존 유지): ");
+            System.out.print("새 이메일 또는 엔터 (기존 유지): ");
             input = scanner.nextLine().trim();
 
-            if ("-".equals(input)) {
-                return null; // 변경하지 않음을 의미
+            if (input.isEmpty()) {  
+                return null; 
             }
 
             if (validator.validateEmail(input) && validator.checkEmailDuplicate(input, loginId)) {
                 return input;
             }
-            // 유효성 검사 실패시 다시 입력
         } while (true);
     }
 
@@ -184,35 +206,15 @@ public class InputHelper {
     public String inputNewUserPhone(String loginId) {
         String input;
         do {
-            System.out.print("새 전화번호 (010-0000-0000) 또는 '-' (기존 유지): ");
+            System.out.print("새 전화번호 (010-0000-0000) 또는 엔터 (기존 유지): ");
             input = scanner.nextLine().trim();
 
-            if ("-".equals(input)) {
-                return null; // 변경하지 않음을 의미
+            if (input.isEmpty()) {  
+                return null;
             }
 
             if (validator.validatePhone(input) && validator.checkPhoneDuplicate(input, loginId)) {
                 return input;
-            }
-            // 유효성 검사 실패시 다시 입력
-        } while (true);
-    }
-
-    // 페이지 번호 입력
-    public int inputPageNumber(int totalPages) {
-        int pageNumber;
-        do {
-            try {
-                System.out.print("이동할 페이지 번호 (1~" + totalPages + "): ");
-                pageNumber = Integer.parseInt(scanner.nextLine());
-
-                if (pageNumber >= 1 && pageNumber <= totalPages) {
-                    return pageNumber;
-                } else {
-                    System.out.println("❌ 1~" + totalPages + " 범위의 페이지 번호를 입력해주세요.");
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("❌ 올바른 숫자를 입력해주세요.");
             }
         } while (true);
     }

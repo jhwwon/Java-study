@@ -34,7 +34,7 @@ public class UserManager {
                     return rs.getString("user_name");
             }
         } catch (SQLException e) {
-            System.out.println("❌ 사용자 이름 조회 오류: " + e.getMessage());
+            System.out.println("사용자 이름 조회 오류: " + e.getMessage());
         }
         return userId;
     }
@@ -48,7 +48,7 @@ public class UserManager {
                 return rs.next() && rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            System.out.println("❌ 사용자 조회 오류: " + e.getMessage());
+            System.out.println("사용자 조회 오류: " + e.getMessage());
             return false;
         }
     }
@@ -64,7 +64,7 @@ public class UserManager {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ 비밀번호 확인 오류: " + e.getMessage());
+            System.out.println("비밀번호 확인 오류: " + e.getMessage());
         }
         return false;
     }
@@ -81,7 +81,7 @@ public class UserManager {
             pstmt.setString(5, user.getUserPhone());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.out.println("❌ 회원가입 오류: " + e.getMessage());
+            System.out.println("회원가입 오류: " + e.getMessage());
             return false;
         }
     }
@@ -104,7 +104,7 @@ public class UserManager {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ 사용자 조회 오류: " + e.getMessage());
+            System.out.println("사용자 조회 오류: " + e.getMessage());
         }
         return null;
     }
@@ -135,7 +135,7 @@ public class UserManager {
         }
 
         if (!hasChanges) {
-            System.out.println("ℹ️ 변경된 항목이 없습니다.");
+            System.out.println("변경된 항목이 없습니다.");
             return false;
         }
 
@@ -157,7 +157,7 @@ public class UserManager {
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.out.println("❌ 회원정보 수정 오류: " + e.getMessage());
+            System.out.println("회원정보 수정 오류: " + e.getMessage());
             return false;
         }
     }
@@ -171,7 +171,7 @@ public class UserManager {
         if (currentUser != null && password.equals(currentUser.getUserPassword())) {
             return true;
         } else {
-            System.out.println("❌ 현재 비밀번호가 일치하지 않습니다.");
+            System.out.println("현재 비밀번호가 일치하지 않습니다.");
             return false;
         }
     }
@@ -181,13 +181,13 @@ public class UserManager {
         User currentUser = getUserById(loginId);
         if (currentUser != null) {
             System.out.println("\n[현재 회원정보]");
-            System.out.println("─────────────────────────────────────");
+            System.out.println("====================================================================================");
             System.out.println("아이디: " + currentUser.getUserId());
             System.out.println("이름: " + currentUser.getUserName());
             System.out.println("이메일: " + currentUser.getUserEmail());
             System.out.println("전화번호: " + currentUser.getUserPhone());
             System.out.println("가입일: " + currentUser.getJoinDate());
-            System.out.println("─────────────────────────────────────");
+            System.out.println("====================================================================================");
         }
     }
 
@@ -197,7 +197,7 @@ public class UserManager {
         User currentUser = getUserById(loginId);
 
         System.out.println("\n[변경사항 미리보기]");
-        System.out.println("─────────────────────────────────────");
+        System.out.println("====================================================================================");
 
         if (newPassword != null) {
             System.out.println("비밀번호: 변경됨 (새로운 비밀번호로 설정)");
@@ -217,7 +217,7 @@ public class UserManager {
             System.out.println("전화번호: " + (currentUser != null ? currentUser.getUserPhone() : "정보 없음") + " (기존 전화번호 유지)");
         }
 
-        System.out.println("─────────────────────────────────────");
+        System.out.println("====================================================================================");
     }
 
     // 사용자 정보 일괄 업데이트
@@ -246,8 +246,8 @@ public class UserManager {
     public void join() {
         System.out.println("[회원가입]");
         String userId = inputHelper.inputUserId();
-        String userName = inputHelper.inputUserName();
-        String password = inputHelper.inputUserPassword(userId);
+        String userName = inputHelper.inputName();
+        String password = inputHelper.inputPassword(userId);
         String email = inputHelper.inputEmail();
         String phone = inputHelper.inputPhone();
 
@@ -278,7 +278,7 @@ public class UserManager {
             if (checkUserExists(userId)) {
                 break;
             } else {
-                System.out.println("❌ 존재하지 않는 아이디입니다. 다시 입력해주세요.");
+                System.out.println("존재하지 않는 아이디입니다. 다시 입력해주세요.");
             }
         } while (true);
 
@@ -289,7 +289,7 @@ public class UserManager {
             if (checkUserPassword(userId, password)) {
                 break;
             } else {
-                System.out.println("❌ 비밀번호가 일치하지 않습니다. 다시 입력해주세요.");
+                System.out.println("비밀번호가 일치하지 않습니다. 다시 입력해주세요.");
             }
         } while (true);
 
@@ -313,8 +313,8 @@ public class UserManager {
         // 현재 정보 표시
         displayCurrentUserInfo(loginId);
 
-        System.out.println("\n📝 변경하지 않을 항목은 '-'를 입력하세요. (기존 값 유지)");
-        System.out.println("─────────────────────────────────────");
+        System.out.println("\n변경하지 않을 항목은 '-'를 입력하세요. (기존 값 유지)");
+        System.out.println("====================================================================================");
 
         // 새로운 정보 입력
         String newPassword = inputHelper.inputNewUserPassword(loginId);

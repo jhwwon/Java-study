@@ -1,4 +1,4 @@
-package shoppingmallproject;
+package noconnectiondb_project;
 
 import java.io.*;
 import java.util.List;

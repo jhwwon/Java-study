@@ -47,150 +47,8 @@ public class TransactionManager {
             pstmt.setString(9, transaction.getTransactionMemo());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.out.println("❌ 거래내역 저장 오류: " + e.getMessage());
+            System.out.println("거래내역 저장 오류: " + e.getMessage());
             return false;
-        }
-    }
-
-    // 전체 거래내역 갯수 조회
-    public int getTotalTransactionCount(String accountId) {
-        String sql = "SELECT COUNT(*) FROM transactions WHERE account_id = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, accountId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        } catch (SQLException e) {
-            System.out.println("❌ 거래내역 개수 조회 오류: " + e.getMessage());
-        }
-        return 0;
-    }
-
-    // 거래내역 페이징 표시
-    public void displayTransactionHistory(String accountId) {
-        final int PAGE_SIZE = 3; // 페이지당 거래 수
-        int currentPage = 1;
-
-        while (true) {
-            // 전체 거래 수 조회
-            int totalCount = getTotalTransactionCount(accountId);
-            if (totalCount == 0) {
-                System.out.println("\n[거래내역] 계좌번호: " + accountId + " (" + accountManager.getAccountHolderName(accountId) + ")");
-                System.out.println("거래내역이 없습니다.");
-                return;
-            }
-
-            int totalPages = (int) Math.ceil((double) totalCount / PAGE_SIZE);
-
-            // 현재 페이지가 범위를 벗어나면 조정
-            if (currentPage > totalPages)
-                currentPage = totalPages;
-            if (currentPage < 1)
-                currentPage = 1;
-
-            // 페이지 데이터 표시
-            displayTransactionPage(accountId, currentPage, PAGE_SIZE, totalCount, totalPages);
-
-            System.out.println("\n📄 페이지 이동:");
-            System.out.println("1.이전페이지 | 2.다음페이지 | 3.첫페이지 | 4.마지막페이지 | 5.페이지이동 | 0.돌아가기");
-            System.out.print("선택: ");
-
-            String choice = scanner.nextLine();
-            switch (choice) {
-                case "1": // 이전 페이지
-                    if (currentPage > 1) {
-                        currentPage--;
-                    } else {
-                        System.out.println("❌ 첫 번째 페이지입니다.");
-                    }
-                    break;
-                case "2": // 다음 페이지
-                    if (currentPage < totalPages) {
-                        currentPage++;
-                    } else {
-                        System.out.println("❌ 마지막 페이지입니다.");
-                    }
-                    break;
-                case "3": // 첫 페이지
-                    currentPage = 1;
-                    break;
-                case "4": // 마지막 페이지
-                    currentPage = totalPages;
-                    break;
-                case "5": // 페이지 이동
-                    currentPage = inputHelper.inputPageNumber(totalPages);
-                    break;
-                case "0": // 돌아가기
-                    return;
-                default:
-                    System.out.println("❌ 0~5번을 선택해주세요.");
-            }
-        }
-    }
-
-    // 특정 페이지의 거래내역 표시 (최신 거래가 가장 큰 번호)
-    public void displayTransactionPage(String accountId, int currentPage, int pageSize, int totalCount, int totalPages) {
-        System.out.println("\n[거래내역] 계좌번호: " + accountId + " (" + accountManager.getAccountHolderName(accountId) + ")");
-        System.out.println(currentPage + "/" + totalPages + " 페이지] 총 " + totalCount + "건");
-        System.out.println("====================================================================================");
-
-        // Oracle 페이징 쿼리 (ROWNUM 사용)
-        String sql = "SELECT * FROM (" + "  SELECT ROWNUM rn, t.* FROM ("
-                + "    SELECT * FROM transactions WHERE account_id = ? " + "    ORDER BY transaction_date DESC" + // 최신순 정렬 유지
-                "  ) t WHERE ROWNUM <= ?" + ") WHERE rn > ?";
-
-        int endRow = currentPage * pageSize;
-        int startRow = (currentPage - 1) * pageSize;
-
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, accountId);
-            pstmt.setInt(2, endRow);
-            pstmt.setInt(3, startRow);
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                boolean hasTransactions = false;
-
-                while (rs.next()) {
-                    hasTransactions = true;
-
-                    // 최신 거래가 가장 큰 번호가 되도록 계산
-                    // 전체에서 현재 행의 위치를 계산 (1부터 시작)
-                    int currentRowInTotal = startRow + rs.getInt("rn") - startRow;
-                    // 역순으로 번호 부여 (가장 최신이 가장 큰 번호)
-                    int displayIndex = totalCount - currentRowInTotal + 1;
-
-                    String transactionType = rs.getString("transaction_type");
-                    String counterpartAccount = rs.getString("counterpart_account");
-                    String counterpartName = rs.getString("counterpart_name");
-                    String depositorName = rs.getString("depositor_name");
-                    String memo = rs.getString("transaction_memo");
-
-                    String counterpartDisplay = BankUtils.getCounterpartDisplay(transactionType, counterpartName, 
-                                                                              depositorName, counterpartAccount);
-
-                    if (memo == null)
-                        memo = "-";
-
-                    // 순번 표시 - 최신 거래가 가장 큰 번호
-                    System.out.println(displayIndex + "번째 거래");
-                    System.out.println("거래번호: " + rs.getString("transaction_id"));
-                    System.out.println("거래구분: " + transactionType);
-                    System.out.println("상대방정보: " + counterpartDisplay);
-                    System.out.println("거래일시: " + BankUtils.formatDate(rs.getTimestamp("transaction_date")));
-                    System.out.println("메모: " + memo);
-                    System.out.println("거래금액: " + BankUtils.formatCurrency(rs.getDouble("amount")));
-                    System.out.println("거래후잔액: " + BankUtils.formatCurrency(rs.getDouble("balance_after")));
-                    System.out.println("------------------------------------------------------------------------------------");
-                }
-
-                if (!hasTransactions) {
-                    System.out.println("해당 페이지에 거래내역이 없습니다.");
-                }
-            }
-        } catch (SQLException e) {
-            System.out.println("❌ 거래내역 조회 오류: " + e.getMessage());
         }
     }
 
@@ -201,12 +59,10 @@ public class TransactionManager {
         String depositorName;
 
         if (accountManager.isMyAccount(accountId, loginId)) {
-            System.out.println("💳 본인 계좌 입금 - 계좌 비밀번호 확인이 필요합니다.");
-            if (!inputHelper.checkPassword(accountId)) {
-                return;
-            }
-            depositorName = userManager.getUserName(loginId);
+            System.out.println("본인 계좌 입금 - 로그인 인증으로 확인되었습니다.");
+            depositorName = null; // 본인 계좌 입금시 null로 설정
         } else {
+            System.out.println("타인 계좌 입금");
             depositorName = inputHelper.input("입금자명: ");
         }
 
@@ -221,14 +77,13 @@ public class TransactionManager {
             double newBalance = currentBalance + amount;
 
             if (accountManager.updateAccountBalance(accountId, newBalance)) {
-                // Transaction 객체 생성하여 거래내역 저장
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(BankUtils.generateTransactionId(conn));
                 transaction.setAccountId(accountId);
                 transaction.setTransactionType("입금");
                 transaction.setAmount(amount);
                 transaction.setBalanceAfter(newBalance);
-                transaction.setDepositorName(depositorName);
+                transaction.setDepositorName(depositorName); // null이 저장됨
                 transaction.setTransactionMemo(memo);
 
                 saveTransaction(transaction);
@@ -255,7 +110,7 @@ public class TransactionManager {
         double amount = inputHelper.inputAmount("출금액: ");
 
         if (currentBalance < amount) {
-            System.out.println("❌ 잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
+            System.out.println("잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
             return;
         }
 
@@ -268,7 +123,6 @@ public class TransactionManager {
             double newBalance = currentBalance - amount;
 
             if (accountManager.updateAccountBalance(accountId, newBalance)) {
-                // Transaction 객체 생성하여 거래내역 저장
                 Transaction transaction = new Transaction();
                 transaction.setTransactionId(BankUtils.generateTransactionId(conn));
                 transaction.setAccountId(accountId);
@@ -300,14 +154,14 @@ public class TransactionManager {
             toAccountId = inputHelper.inputAccountId("입금 계좌번호: ", false, loginId);
             if (!fromAccountId.equals(toAccountId))
                 break;
-            System.out.println("❌ 출금 계좌와 입금 계좌가 같을 수 없습니다.");
+            System.out.println("출금 계좌와 입금 계좌가 같을 수 없습니다.");
         } while (true);
 
         double currentBalance = accountManager.getBalance(fromAccountId);
         double amount = inputHelper.inputAmount("이체금액: ");
 
         if (currentBalance < amount) {
-            System.out.println("❌ 잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
+            System.out.println("잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
             return;
         }
 
@@ -373,18 +227,20 @@ public class TransactionManager {
                 try {
                     conn.rollback();
                 } catch (SQLException ex) {
+                    System.out.println("롤백 오류: " + ex.getMessage());
                 }
-                System.out.println("❌ 이체 오류: " + e.getMessage());
+                System.out.println("이체 오류: " + e.getMessage());
             } finally {
                 try {
                     conn.setAutoCommit(true);
                 } catch (SQLException e) {
+                    System.out.println("자동커밋 설정 오류: " + e.getMessage());
                 }
             }
         }
     }
 
-    // 거래내역 조회 (페이징 기능 포함)
+    // 거래내역 조회 
     public void history(String loginId) {
         System.out.println("[거래내역 조회]");
         String accountId = inputHelper.inputAccountId("계좌번호: ", true, loginId);
@@ -393,7 +249,60 @@ public class TransactionManager {
             return;
         }
 
-        // 페이징 시작
-        displayTransactionHistory(accountId);
+        // 전체 거래내역 표시
+        displayAllTransactions(accountId);
+    }
+
+    // 전체 거래내역 조회 
+    public void displayAllTransactions(String accountId) {
+        System.out.println("\n[거래내역] 계좌번호: " + accountId + " (" + accountManager.getAccountHolderName(accountId) + ")");
+        System.out.println("====================================================================================");
+        
+        String sql = "SELECT * FROM transactions WHERE account_id = ? ORDER BY transaction_date DESC";
+        
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, accountId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                boolean hasTransactions = false;
+                int index = 1; 
+                
+                while (rs.next()) {
+                    hasTransactions = true;
+                    
+                    String transactionType = rs.getString("transaction_type");
+                    String counterpartAccount = rs.getString("counterpart_account");
+                    String counterpartName = rs.getString("counterpart_name");
+                    String depositorName = rs.getString("depositor_name");
+                    String memo = rs.getString("transaction_memo");
+
+                    String counterpartDisplay = BankUtils.getCounterpartDisplay(transactionType, counterpartName, 
+                                                                              depositorName, counterpartAccount);
+
+                    if (memo == null)
+                        memo = "-";
+
+                    // 거래내역 출력
+                    System.out.println(index + "번째 거래");
+                    System.out.println("거래번호: " + rs.getString("transaction_id"));
+                    System.out.println("거래구분: " + transactionType);
+                    System.out.println("상대방정보: " + counterpartDisplay);
+                    System.out.println("거래일시: " + BankUtils.formatDate(rs.getTimestamp("transaction_date")));
+                    System.out.println("메모: " + memo);
+                    System.out.println("거래금액: " + BankUtils.formatCurrency(rs.getDouble("amount")));
+                    System.out.println("거래후잔액: " + BankUtils.formatCurrency(rs.getDouble("balance_after")));
+                    System.out.println("------------------------------------------------------------------------------------");
+                    
+                    index++;
+                }
+                
+                if (!hasTransactions) {
+                    System.out.println("거래내역이 없습니다.");
+                } else {
+                    System.out.println("총 " + (index - 1) + "건의 거래내역이 조회되었습니다.");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("거래내역 조회 오류: " + e.getMessage());
+        }
     }
 }

@@ -16,7 +16,7 @@ public class BankSystem {
     private Connection conn = null;
     private String loginId = null;
     
-    // 헬퍼 및 매니저 객체들
+    // helper 및 manager 객체들
     private ValidationHelper validator;
     private InputHelper inputHelper;
     private UserManager userManager;
@@ -30,7 +30,7 @@ public class BankSystem {
             conn.setAutoCommit(true);
             System.out.println("은행 계좌 시스템 DB 연결 성공!");
             
-            // 헬퍼 및 매니저 객체 초기화
+            // helper 및 manager 객체 초기화
             validator = new ValidationHelper(conn);
             inputHelper = new InputHelper(scanner, validator, conn);
             userManager = new UserManager(conn, validator, inputHelper, scanner);
@@ -48,13 +48,12 @@ public class BankSystem {
             if (conn != null)
                 conn.close();
         } catch (SQLException e) {
-            System.out.println("❌ DB 연결 종료 중 오류: " + e.getMessage());
+            System.out.println("DB 연결 종료 중 오류: " + e.getMessage());
         }
         System.out.println("은행 시스템이 정상적으로 종료되었습니다.");
         System.exit(0);
     }
 
-    // 로그아웃 처리
     private void logout() {
         loginId = null;
         System.out.println("로그아웃되었습니다.");
@@ -96,7 +95,7 @@ public class BankSystem {
                 }
                 case "3" -> exit();
                 default -> {
-                    System.out.println("❌ 1~3번의 숫자만 입력이 가능합니다.");
+                    System.out.println("1~3번의 숫자만 입력이 가능합니다.");
                     menu();
                 }
             }
@@ -147,7 +146,7 @@ public class BankSystem {
                 }
                 case "0" -> exit();
                 default -> {
-                    System.out.println("❌ 0~10번의 숫자만 입력이 가능합니다.");
+                    System.out.println("0~10번의 숫자만 입력이 가능합니다.");
                     menu();
                 }
             }

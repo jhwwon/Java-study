@@ -1,8 +1,9 @@
-package project;
+package noconnectiondb_project;
 
 import java.io.*;
 import java.util.List;
 import java.util.Scanner;
+
 import java.util.ArrayList;
 import java.util.InputMismatchException;  // 잘못된 타입의 데이터를 입력했을 경우 발행하는 예외를 처리
 import lombok.Getter;

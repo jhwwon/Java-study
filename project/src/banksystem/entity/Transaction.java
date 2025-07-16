@@ -18,7 +18,7 @@ public class Transaction {
 
     public Transaction() {}
 
-    // 입금/출금용 생성자
+    // 입금/출금용
     public Transaction(String transactionId, String accountId, String transactionType, 
                        double amount, double balanceAfter) {
         this.transactionId = transactionId;
@@ -29,7 +29,7 @@ public class Transaction {
         this.transactionDate = new Date();
     }
 
-    // 이체용 생성자
+    // 이체용
     public Transaction(String transactionId, String accountId, String transactionType, 
                        double amount, double balanceAfter, String counterpartAccount) {
         this.transactionId = transactionId;
@@ -41,7 +41,7 @@ public class Transaction {
         this.transactionDate = new Date();
     }
     
-    // 완전한 거래내역용 생성자 
+    // 거래내역용 
     public Transaction(String transactionId, String accountId, String transactionType, 
                        double amount, double balanceAfter, String counterpartAccount,
                        String counterpartName, String depositorName, String transactionMemo) {
