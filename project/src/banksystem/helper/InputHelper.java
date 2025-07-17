@@ -113,10 +113,6 @@ public class InputHelper {
                     System.out.println("금액은 1,000원 이상이어야 합니다.");
                     continue;
                 }
-                if (amount > 5000000) {
-                    System.out.println("금액이 너무 큽니다. (최대 500만원)");
-                    continue;
-                }
                 return amount;
             } catch (NumberFormatException e) {
                 System.out.println("올바른 숫자를 입력해주세요.");

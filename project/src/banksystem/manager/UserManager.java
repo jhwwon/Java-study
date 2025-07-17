@@ -181,13 +181,13 @@ public class UserManager {
         User currentUser = getUserById(loginId);
         if (currentUser != null) {
             System.out.println("\n[현재 회원정보]");
-            System.out.println("====================================================================================");
+            System.out.println("============================================================================================================================");
             System.out.println("아이디: " + currentUser.getUserId());
             System.out.println("이름: " + currentUser.getUserName());
             System.out.println("이메일: " + currentUser.getUserEmail());
             System.out.println("전화번호: " + currentUser.getUserPhone());
             System.out.println("가입일: " + currentUser.getJoinDate());
-            System.out.println("====================================================================================");
+            System.out.println("============================================================================================================================");
         }
     }
 
@@ -197,7 +197,7 @@ public class UserManager {
         User currentUser = getUserById(loginId);
 
         System.out.println("\n[변경사항 미리보기]");
-        System.out.println("====================================================================================");
+        System.out.println("============================================================================================================================");
 
         if (newPassword != null) {
             System.out.println("비밀번호: 변경됨 (새로운 비밀번호로 설정)");
@@ -217,7 +217,7 @@ public class UserManager {
             System.out.println("전화번호: " + (currentUser != null ? currentUser.getUserPhone() : "정보 없음") + " (기존 전화번호 유지)");
         }
 
-        System.out.println("====================================================================================");
+        System.out.println("============================================================================================================================");
     }
 
     // 사용자 정보 일괄 업데이트
@@ -314,7 +314,7 @@ public class UserManager {
         displayCurrentUserInfo(loginId);
 
         System.out.println("\n변경하지 않을 항목은 '-'를 입력하세요. (기존 값 유지)");
-        System.out.println("====================================================================================");
+        System.out.println("============================================================================================================================");
 
         // 새로운 정보 입력
         String newPassword = inputHelper.inputNewUserPassword(loginId);

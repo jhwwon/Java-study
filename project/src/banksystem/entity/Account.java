@@ -12,6 +12,8 @@ public class Account {
     private double balance;			// 계좌 잔액
     private String userId;			// 계좌 소유자 ID
     private Date createDate;		// 계좌 개설일
+    private double interestRate;    // 연 이자율 (새로 추가)
+    private Date lastInterestDate;  // 마지막 이자 지급일 (새로 추가)
 
     public Account() {}
 
@@ -24,5 +26,20 @@ public class Account {
         this.balance = balance;
         this.userId = userId;
         this.createDate = new Date();
+        this.lastInterestDate = new Date(); // 계좌 생성일을 마지막 이자 지급일로 설정
+    }
+    
+    // 이자율 포함 생성자 (새로 추가)
+    public Account(String accountId, String accountName, String accountType, 
+                   String accountPassword, double balance, String userId, double interestRate) {
+        this.accountId = accountId;
+        this.accountName = accountName;
+        this.accountType = accountType;
+        this.accountPassword = accountPassword;
+        this.balance = balance;
+        this.userId = userId;
+        this.createDate = new Date();
+        this.interestRate = interestRate;
+        this.lastInterestDate = new Date();
     }
 }

@@ -46,6 +46,26 @@ public class BankUtils {
         }
         return null;
     }
+    
+    /**
+     * 이자 지급 ID 생성 (PAY00000001 형태)
+     */
+    public static String generatePaymentId(Connection conn) {
+        String sql = "SELECT COUNT(*) + 1 FROM interest_payments";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    int nextNumber = rs.getInt(1);
+                    return String.format("PAY%08d", nextNumber);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("이자 지급 ID 생성 오류: " + e.getMessage());
+        }
+        
+        // 오류 시 기본값
+        return "PAY00000001";
+    }
 
     // 거래 유형에 따른 상대방 정보 표시 형식 결정
     public static String getCounterpartDisplay(String transactionType, String counterpartName, 

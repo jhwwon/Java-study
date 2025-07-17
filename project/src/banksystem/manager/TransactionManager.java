@@ -8,25 +8,110 @@ import java.util.Scanner;
 
 import banksystem.entity.Transaction;
 import banksystem.helper.InputHelper;
-import banksystem.helper.ValidationHelper;
 import banksystem.util.BankUtils;
 
 public class TransactionManager {
     private Connection conn;
-    private ValidationHelper validator;
     private InputHelper inputHelper;
     private AccountManager accountManager;
-    private UserManager userManager;
     private Scanner scanner;
 
-    public TransactionManager(Connection conn, ValidationHelper validator, InputHelper inputHelper,
-                             AccountManager accountManager, UserManager userManager, Scanner scanner) {
+    // 거래 한도 상수 정의
+    private static final double DEPOSIT_DAILY_LIMIT = 10000000;   // 입금 1일 1천만원
+    private static final double DEPOSIT_SINGLE_LIMIT = 5000000;   // 입금 1회 5백만원
+    
+    
+   
+    private static final double WITHDRAW_DAILY_LIMIT = 5000000;   // 출금 1일 500만원
+    private static final double WITHDRAW_SINGLE_LIMIT = 1000000;  // 출금 1회 100만원 
+    
+    
+    private static final double TRANSFER_DAILY_LIMIT = 5000000;   // 이체 1일 5백만원
+    private static final double TRANSFER_SINGLE_LIMIT = 2000000;  // 이체 1회 2백만원
+
+    public TransactionManager(Connection conn, InputHelper inputHelper,
+                             AccountManager accountManager, Scanner scanner) {
         this.conn = conn;
-        this.validator = validator;
         this.inputHelper = inputHelper;
-        this.accountManager = accountManager;
-        this.userManager = userManager;
+        this.accountManager = accountManager;  // null일 수 있음 (나중에 설정)
         this.scanner = scanner;
+    }
+    
+    // AccountManager 설정 메소드
+    public void setAccountManager(AccountManager accountManager) {
+        this.accountManager = accountManager;
+    }
+
+    // 오늘 특정 거래 유형의 총 금액 조회
+    private double getTodayTransactionAmount(String accountId, String transactionType) {
+        String sql = "SELECT NVL(SUM(amount), 0) FROM transactions " +
+                    "WHERE account_id = ? AND transaction_type = ? " +
+                    "AND TRUNC(transaction_date) = TRUNC(SYSDATE)";
+        
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, accountId);
+            pstmt.setString(2, transactionType);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("일일 거래금액 조회 오류: " + e.getMessage());
+        }
+        return 0;
+    }
+
+ // 거래 한도 체크 (사용자 표시용 거래 유형 개선)
+    private boolean checkTransactionLimit(String accountId, String transactionType, double amount) {
+        double singleLimit, dailyLimit;
+        String displayType; // 사용자에게 표시할 거래 유형
+        
+        // 거래 유형별 한도 설정 및 표시 유형 설정
+        switch (transactionType) {
+            case "입금":
+                singleLimit = DEPOSIT_SINGLE_LIMIT;
+                dailyLimit = DEPOSIT_DAILY_LIMIT;
+                displayType = "입금";
+                break;
+            case "출금":
+                singleLimit = WITHDRAW_SINGLE_LIMIT;
+                dailyLimit = WITHDRAW_DAILY_LIMIT;
+                displayType = "출금";
+                break;
+            case "이체출금":
+                singleLimit = TRANSFER_SINGLE_LIMIT;
+                dailyLimit = TRANSFER_DAILY_LIMIT;
+                displayType = "이체"; // 사용자에게는 "이체"로 표시
+                break;
+            default:
+                return true; // 기타 거래는 제한 없음
+        }
+
+        // 1회 한도 체크
+        if (amount > singleLimit) {
+            System.out.println("❌ 1회 " + displayType + " 한도를 초과했습니다.");
+            System.out.println("   1회 한도: " + BankUtils.formatCurrency(singleLimit));
+            System.out.println("   요청 금액: " + BankUtils.formatCurrency(amount));
+            return false;
+        }
+
+        // 1일 한도 체크
+        double todayAmount = getTodayTransactionAmount(accountId, transactionType);
+        if (todayAmount + amount > dailyLimit) {
+            System.out.println("❌ 1일 " + displayType + " 한도를 초과했습니다.");
+            System.out.println("   1일 한도: " + BankUtils.formatCurrency(dailyLimit));
+            System.out.println("   오늘 사용액: " + BankUtils.formatCurrency(todayAmount));
+            System.out.println("   요청 금액: " + BankUtils.formatCurrency(amount));
+            System.out.println("   잔여 한도: " + BankUtils.formatCurrency(dailyLimit - todayAmount));
+            
+            // 거래 유형별 추가 안내 메시지
+            System.out.println("   💡 오늘은 최대 " + BankUtils.formatCurrency(dailyLimit - todayAmount) + "까지 더 " + displayType + " 가능합니다.");
+            
+            return false;
+        }
+
+        return true;
     }
 
     // Transaction 객체를 DB에 저장
@@ -52,7 +137,7 @@ public class TransactionManager {
         }
     }
 
-    // 입금 처리
+    // 입금 처리 (한도 체크 후 재입력 가능)
     public void deposit(String loginId) {
         System.out.println("[입금]");
         String accountId = inputHelper.inputAccountId("계좌번호: ", false, loginId);
@@ -60,13 +145,34 @@ public class TransactionManager {
 
         if (accountManager.isMyAccount(accountId, loginId)) {
             System.out.println("본인 계좌 입금 - 로그인 인증으로 확인되었습니다.");
-            depositorName = null; // 본인 계좌 입금시 null로 설정
+            depositorName = null;
         } else {
             System.out.println("타인 계좌 입금");
             depositorName = inputHelper.input("입금자명: ");
         }
 
-        double amount = inputHelper.inputAmount("입금액: ");
+        double amount;
+        // 한도 체크를 통과할 때까지 반복
+        do {
+            amount = inputHelper.inputAmount("입금액: ");
+            
+            // 한도 체크 - 실패하면 다시 입력받기
+            if (checkTransactionLimit(accountId, "입금", amount)) {
+                break; // 한도 체크 통과시 반복문 종료
+            }
+            
+            // 한도 초과시 재입력 여부 확인
+            System.out.println("다시 입력하시겠습니까? (1: 예, 2: 아니오)");
+            System.out.print("선택: ");
+            String choice = scanner.nextLine();
+            
+            if (!"1".equals(choice)) {
+                System.out.println("입금이 취소되었습니다.");
+                return; // 사용자가 재입력을 원하지 않으면 메소드 종료
+            }
+            
+        } while (true);
+
         System.out.print("입금 메모 (선택사항): ");
         String memo = scanner.nextLine().trim();
         if (memo.isEmpty())
@@ -83,7 +189,7 @@ public class TransactionManager {
                 transaction.setTransactionType("입금");
                 transaction.setAmount(amount);
                 transaction.setBalanceAfter(newBalance);
-                transaction.setDepositorName(depositorName); // null이 저장됨
+                transaction.setDepositorName(depositorName);
                 transaction.setTransactionMemo(memo);
 
                 saveTransaction(transaction);
@@ -97,7 +203,7 @@ public class TransactionManager {
         }
     }
 
-    // 출금 처리
+    // 출금 처리 (한도 체크 후 재입력 가능)
     public void withdraw(String loginId) {
         System.out.println("[출금]");
         String accountId = inputHelper.inputAccountId("계좌번호: ", true, loginId);
@@ -107,12 +213,44 @@ public class TransactionManager {
         }
 
         double currentBalance = accountManager.getBalance(accountId);
-        double amount = inputHelper.inputAmount("출금액: ");
+        double amount;
+        
+        // 잔액 체크 및 한도 체크를 통과할 때까지 반복
+        do {
+            amount = inputHelper.inputAmount("출금액: ");
 
-        if (currentBalance < amount) {
-            System.out.println("잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
-            return;
-        }
+            // 1. 잔액 체크
+            if (currentBalance < amount) {
+                System.out.println("잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
+                
+                // 재입력 여부 확인
+                System.out.println("다시 입력하시겠습니까? (1: 예, 2: 아니오)");
+                System.out.print("선택: ");
+                String choice = scanner.nextLine();
+                
+                if (!"1".equals(choice)) {
+                    System.out.println("출금이 취소되었습니다.");
+                    return;
+                }
+                continue;
+            }
+
+            // 2. 한도 체크
+            if (checkTransactionLimit(accountId, "출금", amount)) {
+                break; // 모든 체크 통과시 반복문 종료
+            }
+            
+            // 한도 초과시 재입력 여부 확인
+            System.out.println("다시 입력하시겠습니까? (1: 예, 2: 아니오)");
+            System.out.print("선택: ");
+            String choice = scanner.nextLine();
+            
+            if (!"1".equals(choice)) {
+                System.out.println("출금이 취소되었습니다.");
+                return;
+            }
+            
+        } while (true);
 
         System.out.print("출금 메모 (선택사항): ");
         String memo = scanner.nextLine().trim();
@@ -140,7 +278,7 @@ public class TransactionManager {
         }
     }
 
-    // 이체 처리
+    // 이체 처리 (한도 체크 후 재입력 가능)
     public void transfer(String loginId) {
         System.out.println("[이체]");
         String fromAccountId = inputHelper.inputAccountId("출금 계좌번호: ", true, loginId);
@@ -158,12 +296,44 @@ public class TransactionManager {
         } while (true);
 
         double currentBalance = accountManager.getBalance(fromAccountId);
-        double amount = inputHelper.inputAmount("이체금액: ");
+        double amount;
+        
+        // 잔액 체크 및 한도 체크를 통과할 때까지 반복
+        do {
+            amount = inputHelper.inputAmount("이체금액: ");
 
-        if (currentBalance < amount) {
-            System.out.println("잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
-            return;
-        }
+            // 1. 잔액 체크
+            if (currentBalance < amount) {
+                System.out.println("잔액이 부족합니다. (현재 잔액: " + BankUtils.formatCurrency(currentBalance) + ")");
+                
+                // 재입력 여부 확인
+                System.out.println("다시 입력하시겠습니까? (1: 예, 2: 아니오)");
+                System.out.print("선택: ");
+                String choice = scanner.nextLine();
+                
+                if (!"1".equals(choice)) {
+                    System.out.println("이체가 취소되었습니다.");
+                    return;
+                }
+                continue;
+            }
+
+            // 2. 한도 체크 (이체출금으로 체크)
+            if (checkTransactionLimit(fromAccountId, "이체출금", amount)) {
+                break; // 모든 체크 통과시 반복문 종료
+            }
+            
+            // 한도 초과시 재입력 여부 확인
+            System.out.println("다시 입력하시겠습니까? (1: 예, 2: 아니오)");
+            System.out.print("선택: ");
+            String choice = scanner.nextLine();
+            
+            if (!"1".equals(choice)) {
+                System.out.println("이체가 취소되었습니다.");
+                return;
+            }
+            
+        } while (true);
 
         System.out.print("이체 메모 (선택사항): ");
         String memo = scanner.nextLine().trim();
@@ -240,6 +410,90 @@ public class TransactionManager {
         }
     }
 
+    // ==================== 한도 조회 메소드들 ====================
+    
+    /**
+     * 특정 계좌의 오늘 거래 사용량 조회 (입금/출금/이체별)
+     * @param accountId 계좌번호
+     * @return 거래 유형별 사용량 배열 [입금, 출금, 이체]
+     */
+    public double[] getTodayUsageByAccount(String accountId) {
+        double depositUsage = getTodayTransactionAmount(accountId, "입금");
+        double withdrawUsage = getTodayTransactionAmount(accountId, "출금");
+        double transferUsage = getTodayTransactionAmount(accountId, "이체출금");
+        
+        return new double[]{depositUsage, withdrawUsage, transferUsage};
+    }
+    
+    /**
+     * 전체 거래 한도 정보 조회 (1회 한도, 1일 한도) - 굵게 표시
+     * @return 한도 정보 문자열 배열 [입금한도, 출금한도, 이체한도]
+     */
+    public String[] getTransactionLimits() {
+        // ANSI 이스케이프 코드로 굵게 표시
+        String BOLD = "\033[1m";
+        String RESET = "\033[0m";
+        
+        String depositLimits = String.format(BOLD + "입금: 1회 최대 %s | 1일 최대 %s" + RESET, 
+            BankUtils.formatCurrency(DEPOSIT_SINGLE_LIMIT), 
+            BankUtils.formatCurrency(DEPOSIT_DAILY_LIMIT));
+            
+        String withdrawLimits = String.format(BOLD + "출금: 1회 최대 %s | 1일 최대 %s" + RESET, 
+            BankUtils.formatCurrency(WITHDRAW_SINGLE_LIMIT), 
+            BankUtils.formatCurrency(WITHDRAW_DAILY_LIMIT));
+            
+        String transferLimits = String.format(BOLD + "이체: 1회 최대 %s | 1일 최대 %s" + RESET, 
+            BankUtils.formatCurrency(TRANSFER_SINGLE_LIMIT), 
+            BankUtils.formatCurrency(TRANSFER_DAILY_LIMIT));
+        
+        return new String[]{depositLimits, withdrawLimits, transferLimits};
+    }
+    
+    /**
+     * 특정 계좌의 1일 잔여한도 계산 (입금/출금/이체별)
+     * @param accountId 계좌번호
+     * @return 잔여한도 배열 [입금잔여, 출금잔여, 이체잔여]
+     */
+    public double[] getRemainingDailyLimits(String accountId) {
+        double[] usage = getTodayUsageByAccount(accountId);
+        
+        double remainingDeposit = DEPOSIT_DAILY_LIMIT - usage[0];
+        double remainingWithdraw = WITHDRAW_DAILY_LIMIT - usage[1];
+        double remainingTransfer = TRANSFER_DAILY_LIMIT - usage[2];
+        
+        // 음수가 되지 않도록 보정 (한도 초과 시 0으로 표시)
+        remainingDeposit = Math.max(0, remainingDeposit);
+        remainingWithdraw = Math.max(0, remainingWithdraw);
+        remainingTransfer = Math.max(0, remainingTransfer);
+        
+        return new double[]{remainingDeposit, remainingWithdraw, remainingTransfer};
+    }
+
+    /**
+     * 계좌별 오늘 사용량을 포맷팅된 문자열로 반환
+     * @param accountId 계좌번호
+     * @return 포맷팅된 사용량 문자열
+     */
+    public String getFormattedUsageByAccount(String accountId) {
+        double[] usage = getTodayUsageByAccount(accountId);
+        double[] remaining = getRemainingDailyLimits(accountId);
+        
+        // 1일 사용금액 (잔여한도 포함)만 표시
+        return String.format("[1일 사용금액] 입금 %s(잔여한도:%s) / 출금 %s(잔여한도:%s) / 이체 %s(잔여한도:%s)",
+            formatToWon(usage[0]), formatToWon(remaining[0]),
+            formatToWon(usage[1]), formatToWon(remaining[1]),
+            formatToWon(usage[2]), formatToWon(remaining[2]));
+    }
+    
+    /**
+     * 금액을 원 단위로 포맷팅 (콤마 포함)
+     * @param amount 금액
+     * @return 포맷팅된 문자열 (예: "3,000원", "1,500,000원")
+     */
+    private String formatToWon(double amount) {
+        return String.format("%,.0f원", amount);
+    }
+
     // 거래내역 조회 
     public void history(String loginId) {
         System.out.println("[거래내역 조회]");
@@ -256,7 +510,7 @@ public class TransactionManager {
     // 전체 거래내역 조회 
     public void displayAllTransactions(String accountId) {
         System.out.println("\n[거래내역] 계좌번호: " + accountId + " (" + accountManager.getAccountHolderName(accountId) + ")");
-        System.out.println("====================================================================================");
+        System.out.println("============================================================================================================================");
         
         String sql = "SELECT * FROM transactions WHERE account_id = ? ORDER BY transaction_date DESC";
         
@@ -290,7 +544,7 @@ public class TransactionManager {
                     System.out.println("메모: " + memo);
                     System.out.println("거래금액: " + BankUtils.formatCurrency(rs.getDouble("amount")));
                     System.out.println("거래후잔액: " + BankUtils.formatCurrency(rs.getDouble("balance_after")));
-                    System.out.println("------------------------------------------------------------------------------------");
+                    System.out.println("============================================================================================================================");
                     
                     index++;
                 }
