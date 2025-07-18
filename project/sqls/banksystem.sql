@@ -1,4 +1,5 @@
 DROP TABLE transactions CASCADE CONSTRAINTS;
+DROP TABLE interest_payments CASCADE CONSTRAINTS;
 DROP TABLE accounts CASCADE CONSTRAINTS;
 DROP TABLE users CASCADE CONSTRAINTS;
 
@@ -6,6 +7,7 @@ DROP SEQUENCE seq_account;
 DROP SEQUENCE seq_transaction;
 
 DELETE FROM transactions;
+DELETE FROM interest_payments;
 DELETE FROM accounts;
 DELETE FROM users;
 
@@ -19,7 +21,6 @@ CREATE TABLE users (
     join_date DATE DEFAULT SYSDATE            -- 회원가입 날짜
 );
 
-
 -- 계좌 테이블
 CREATE TABLE accounts (
     account_id VARCHAR2(15) PRIMARY KEY,					-- 계좌번호                               
@@ -30,10 +31,22 @@ CREATE TABLE accounts (
     balance NUMBER(15,2) DEFAULT 0 CHECK (balance >= 0),	-- 잔액 (음수 불가)
     user_id VARCHAR2(8) NOT NULL,							-- 계좌 소유자
     create_date DATE DEFAULT SYSDATE,						-- 계좌 개설일
+    interest_rate NUMBER(5,3) NOT NULL,						-- 연 이자율(소수점 세자리)
+    last_interest_date DATE DEFAULT SYSDATE,				-- 마지막 이자 지급일 (이전 이자 지급일부터 현재까지의 기간 계산용)
     CONSTRAINT fk_accounts_user_id                          -- accounts 테이블의 user_id는 반드시 users 테이블에 존재하는 user_id
     	FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- 이자 지급 내역 테이블
+CREATE TABLE interest_payments (
+    payment_id VARCHAR2(20) PRIMARY KEY,	-- 이자 지급 고유 번호
+    account_id VARCHAR2(15) NOT NULL,		-- 이자를 받는 계좌 (accounts 테이블과 일치)
+    payment_date DATE DEFAULT SYSDATE,		-- 이자 지급일
+    interest_amount NUMBER(15,2) NOT NULL,	-- 지급된 이자 금액
+    admin_id VARCHAR2(20) NOT NULL,			-- 이자 지급을 실행한 관리자 (하드코딩된 값 저장)
+    CONSTRAINT fk_interest_payments_account_id 
+        FOREIGN KEY (account_id) REFERENCES accounts(account_id)   -- interest_payments테이블의 account_id컬럼이 accounts테이블의 account_id컬럼을 참조
+);
 
 -- 거래내역 테이블
 CREATE TABLE transactions (
@@ -51,22 +64,8 @@ CREATE TABLE transactions (
         FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE  
 );  -- 거래는 실제 계좌에서만 가능, 계좌를 지우면 그 계좌의 거래내역도 사라짐
 
-
--- 시퀀스 생성
 -- 계좌번호 생성용 시퀀스 (110-234-000001 형태)
-CREATE SEQUENCE seq_account
-    START WITH 1
-    INCREMENT BY 1
-    MAXVALUE 999999
-    NOCYCLE
-    NOCACHE;
+CREATE SEQUENCE seq_account START WITH 1 INCREMENT BY 1 MAXVALUE 999999 NOCYCLE NOCACHE;
 
 -- 거래번호 생성용 시퀀스 (T00000001 형태)
-CREATE SEQUENCE seq_transaction
-    START WITH 1
-    INCREMENT BY 1
-    MAXVALUE 99999999
-    NOCYCLE
-    NOCACHE;
-
-COMMIT;
+CREATE SEQUENCE seq_transaction START WITH 1 INCREMENT BY 1 MAXVALUE 99999999 NOCYCLE NOCACHE;
