@@ -21,9 +21,8 @@ public class AccountManager {
 	private InputHelper inputHelper;
 	private UserManager userManager;
 	private Scanner scanner;
-	private TransactionManager transactionManager;  // 2단계: TransactionManager 참조 추가
+	private TransactionManager transactionManager; 
 
-	// 2단계: 생성자에 TransactionManager 매개변수 추가
 	public AccountManager(Connection conn, ValidationHelper validator, InputHelper inputHelper, UserManager userManager,
 			Scanner scanner, TransactionManager transactionManager) {
 		this.conn = conn;
@@ -31,14 +30,14 @@ public class AccountManager {
 		this.inputHelper = inputHelper;
 		this.userManager = userManager;
 		this.scanner = scanner;
-		this.transactionManager = transactionManager;  // TransactionManager 참조 설정
+		this.transactionManager = transactionManager; 
 	}
 
 	// Account 객체를 DB에 저장
 	public boolean saveAccount(Account account) {
 	    String sql = "INSERT INTO accounts (account_id, account_name, account_type, account_password, " +
-	            "balance, user_id, create_date, interest_rate, last_interest_date) " +
-	            "VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?, SYSDATE)";
+	                 "balance, user_id, create_date, interest_rate, last_interest_date) " +
+	                 "VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?, SYSDATE)";
 	    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 	        pstmt.setString(1, account.getAccountId());
 	        pstmt.setString(2, account.getAccountName());
@@ -46,7 +45,7 @@ public class AccountManager {
 	        pstmt.setString(4, account.getAccountPassword());
 	        pstmt.setDouble(5, account.getBalance());
 	        pstmt.setString(6, account.getUserId());
-	        pstmt.setDouble(7, account.getInterestRate()); // 이자율 추가
+	        pstmt.setDouble(7, account.getInterestRate()); 
 	        return pstmt.executeUpdate() > 0;
 	    } catch (SQLException e) {
 	        System.out.println("계좌 생성 오류: " + e.getMessage());
@@ -111,7 +110,7 @@ public class AccountManager {
 			pstmt.setString(1, accountId);
 			return pstmt.executeUpdate() > 0;
 		} catch (SQLException e) {
-			System.out.println("계좌 삭제 오류: " + e.getMessage());
+			System.out.println("계좌 해지 오류: " + e.getMessage());
 			return false;
 		}
 	}
@@ -179,7 +178,7 @@ public class AccountManager {
 		int choice;
 		do {
 			try {
-				System.out.print("계좌 종류 선택 (1-3): ");
+				System.out.print("계좌 종류 선택 (1 - 3): ");
 				choice = Integer.parseInt(scanner.nextLine());
 				if (choice >= 1 && choice <= 3)
 					break;
@@ -246,7 +245,7 @@ public class AccountManager {
 			} catch (SQLException e) {
 				try {
 					conn.rollback();  // 실패시 롤백
-					System.out.println("❌ 계좌 개설 중 오류가 발생했습니다: " + e.getMessage());
+					System.out.println("계좌 개설 중 오류가 발생했습니다: " + e.getMessage());
 				} catch (SQLException ex) {
 					System.out.println("롤백 오류: " + ex.getMessage());
 				}
@@ -315,7 +314,6 @@ public class AccountManager {
 			String newPassword;
 
 			do {
-				// 여기서 직접 새 비밀번호 입력받기
 				System.out.print("새 계좌 비밀번호 (4자리 숫자): ");
 				newPassword = scanner.nextLine();
 
@@ -339,24 +337,22 @@ public class AccountManager {
 		}
 	}
 
-	// 2단계: 계좌 목록 조회 메소드 수정 (한도 정보 표시 추가)
 	public void listAccounts(String loginId) {
 		System.out.println("\n[계좌 목록] 사용자: " + userManager.getUserName(loginId) + " (" + loginId + ")");
 		
-		// 2단계: 거래 한도 안내 표시 (제목도 굵게)
 		if (transactionManager != null) {
 			System.out.println("============================================================================================================================");
-			// "거래 한도 안내" 제목도 굵게 표시
+			System.out.println();
 			String BOLD = "\033[1m";
 			String RESET = "\033[0m";
-			System.out.println("\n" + "💡 " + BOLD + "거래 한도 안내" + RESET);
+			System.out.println("💡 " + BOLD + "거래 한도 안내" + RESET);
 			
 			String[] limits = transactionManager.getTransactionLimits();
 			for (String limit : limits) {
 				System.out.println(limit);
 			}
 		}
-		
+		System.out.println();
 		System.out.println("============================================================================================================================");
 		System.out.println("계좌번호\t\t계좌명\t\t\t계좌종류\t\t소유자\t\t잔액");
 		System.out.println("============================================================================================================================");
@@ -385,11 +381,10 @@ public class AccountManager {
 							+ rs.getString("account_type") + "\t\t" + rs.getString("user_name") + "\t\t"
 							+ BankUtils.formatCurrency(balance));
 					
-					// 2단계: 계좌별 오늘 사용량 표시
 					if (transactionManager != null) {
 						String usageInfo = transactionManager.getFormattedUsageByAccount(accountId);
 						System.out.println(usageInfo);
-						System.out.println(); // 빈 줄 추가로 가독성 향상
+						System.out.println();
 					}
 				}
 
@@ -407,18 +402,18 @@ public class AccountManager {
 	}
 
 	// 계좌 비밀번호 확인 (InputHelper에서 사용)
-	private boolean checkPassword(String accountId) {
-		String password;
-		do {
-			System.out.print("계좌 비밀번호 (4자리 숫자): ");
-			password = scanner.nextLine();
-			if (password.length() != 4 || !password.matches("\\d{4}")) {
-				System.out.println("계좌 비밀번호는 4자리 숫자여야 합니다.");
-				continue;
-			}
-			if (verifyPassword(accountId, password))
-				return true;
-			System.out.println("계좌 비밀번호가 일치하지 않습니다.");
-		} while (true);
-	}
+	public boolean checkPassword(String accountId) {
+        String password;
+        do {
+            System.out.print("계좌 비밀번호 (4자리 숫자): ");
+            password = scanner.nextLine();
+            if (password.length() != 4 || !password.matches("\\d{4}")) {
+                System.out.println("계좌 비밀번호는 4자리 숫자여야 합니다.");
+                continue;
+            }
+            if (verifyPassword(accountId, password))
+                return true;
+            System.out.println("계좌 비밀번호가 일치하지 않습니다.");
+        } while (true);
+    }
 }

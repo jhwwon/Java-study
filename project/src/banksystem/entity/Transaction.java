@@ -6,7 +6,7 @@ import java.util.Date;
 @Data
 public class Transaction {
     private String transactionId;		// 거래번호
-    private String accountId;			// 거래가 발생한 계좌번호
+    private String accountId;			// 거래 계좌번호
     private String transactionType;		// 거래 유형
     private double amount;				// 거래 금액
     private double balanceAfter;		// 거래 후 잔액

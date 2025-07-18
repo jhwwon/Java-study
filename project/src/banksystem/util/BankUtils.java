@@ -47,9 +47,7 @@ public class BankUtils {
         return null;
     }
     
-    /**
-     * 이자 지급 ID 생성 (PAY00000001 형태)
-     */
+    // 새로운 이자 지급 ID 생성 (기본형식은 PAY00000001에서 1씩 증가 )
     public static String generatePaymentId(Connection conn) {
         String sql = "SELECT COUNT(*) + 1 FROM interest_payments";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {

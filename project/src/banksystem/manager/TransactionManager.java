@@ -20,11 +20,8 @@ public class TransactionManager {
     private static final double DEPOSIT_DAILY_LIMIT = 10000000;   // 입금 1일 1천만원
     private static final double DEPOSIT_SINGLE_LIMIT = 5000000;   // 입금 1회 5백만원
     
-    
-   
     private static final double WITHDRAW_DAILY_LIMIT = 5000000;   // 출금 1일 500만원
     private static final double WITHDRAW_SINGLE_LIMIT = 1000000;  // 출금 1회 100만원 
-    
     
     private static final double TRANSFER_DAILY_LIMIT = 5000000;   // 이체 1일 5백만원
     private static final double TRANSFER_SINGLE_LIMIT = 2000000;  // 이체 1회 2백만원
@@ -33,7 +30,7 @@ public class TransactionManager {
                              AccountManager accountManager, Scanner scanner) {
         this.conn = conn;
         this.inputHelper = inputHelper;
-        this.accountManager = accountManager;  // null일 수 있음 (나중에 설정)
+        this.accountManager = accountManager;  
         this.scanner = scanner;
     }
     
@@ -106,7 +103,7 @@ public class TransactionManager {
             System.out.println("   잔여 한도: " + BankUtils.formatCurrency(dailyLimit - todayAmount));
             
             // 거래 유형별 추가 안내 메시지
-            System.out.println("   💡 오늘은 최대 " + BankUtils.formatCurrency(dailyLimit - todayAmount) + "까지 더 " + displayType + " 가능합니다.");
+            System.out.println("오늘은 최대 " + BankUtils.formatCurrency(dailyLimit - todayAmount) + "까지 더 " + displayType + " 가능합니다.");
             
             return false;
         }
@@ -208,7 +205,7 @@ public class TransactionManager {
         System.out.println("[출금]");
         String accountId = inputHelper.inputAccountId("계좌번호: ", true, loginId);
 
-        if (!inputHelper.checkPassword(accountId)) {
+        if (!accountManager.checkPassword(accountId)) {
             return;
         }
 
@@ -283,7 +280,7 @@ public class TransactionManager {
         System.out.println("[이체]");
         String fromAccountId = inputHelper.inputAccountId("출금 계좌번호: ", true, loginId);
 
-        if (!inputHelper.checkPassword(fromAccountId)) {
+        if (!accountManager.checkPassword(fromAccountId)) {
             return;
         }
 
@@ -409,14 +406,8 @@ public class TransactionManager {
             }
         }
     }
-
-    // ==================== 한도 조회 메소드들 ====================
     
-    /**
-     * 특정 계좌의 오늘 거래 사용량 조회 (입금/출금/이체별)
-     * @param accountId 계좌번호
-     * @return 거래 유형별 사용량 배열 [입금, 출금, 이체]
-     */
+    // 특정 계좌의 오늘 거래 사용량 조회 (입금/출금/이체별)
     public double[] getTodayUsageByAccount(String accountId) {
         double depositUsage = getTodayTransactionAmount(accountId, "입금");
         double withdrawUsage = getTodayTransactionAmount(accountId, "출금");
@@ -425,10 +416,7 @@ public class TransactionManager {
         return new double[]{depositUsage, withdrawUsage, transferUsage};
     }
     
-    /**
-     * 전체 거래 한도 정보 조회 (1회 한도, 1일 한도) - 굵게 표시
-     * @return 한도 정보 문자열 배열 [입금한도, 출금한도, 이체한도]
-     */
+    //전체 거래 한도 정보 조회 (1회 한도, 1일 한도) 
     public String[] getTransactionLimits() {
         // ANSI 이스케이프 코드로 굵게 표시
         String BOLD = "\033[1m";
@@ -449,11 +437,7 @@ public class TransactionManager {
         return new String[]{depositLimits, withdrawLimits, transferLimits};
     }
     
-    /**
-     * 특정 계좌의 1일 잔여한도 계산 (입금/출금/이체별)
-     * @param accountId 계좌번호
-     * @return 잔여한도 배열 [입금잔여, 출금잔여, 이체잔여]
-     */
+    // 특정 계좌의 1일 잔여한도 계산 (입금/출금/이체별)
     public double[] getRemainingDailyLimits(String accountId) {
         double[] usage = getTodayUsageByAccount(accountId);
         
@@ -469,11 +453,7 @@ public class TransactionManager {
         return new double[]{remainingDeposit, remainingWithdraw, remainingTransfer};
     }
 
-    /**
-     * 계좌별 오늘 사용량을 포맷팅된 문자열로 반환
-     * @param accountId 계좌번호
-     * @return 포맷팅된 사용량 문자열
-     */
+    // 계좌별 오늘 사용량을 포맷팅된 문자열로 반환
     public String getFormattedUsageByAccount(String accountId) {
         double[] usage = getTodayUsageByAccount(accountId);
         double[] remaining = getRemainingDailyLimits(accountId);
@@ -485,11 +465,7 @@ public class TransactionManager {
             formatToWon(usage[2]), formatToWon(remaining[2]));
     }
     
-    /**
-     * 금액을 원 단위로 포맷팅 (콤마 포함)
-     * @param amount 금액
-     * @return 포맷팅된 문자열 (예: "3,000원", "1,500,000원")
-     */
+    // 금액을 원 단위로 포맷팅 
     private String formatToWon(double amount) {
         return String.format("%,.0f원", amount);
     }
@@ -499,7 +475,7 @@ public class TransactionManager {
         System.out.println("[거래내역 조회]");
         String accountId = inputHelper.inputAccountId("계좌번호: ", true, loginId);
 
-        if (!inputHelper.checkPassword(accountId)) {
+        if (!accountManager.checkPassword(accountId)) {
             return;
         }
 
@@ -507,10 +483,16 @@ public class TransactionManager {
         displayAllTransactions(accountId);
     }
 
-    // 전체 거래내역 조회 
     public void displayAllTransactions(String accountId) {
         System.out.println("\n[거래내역] 계좌번호: " + accountId + " (" + accountManager.getAccountHolderName(accountId) + ")");
         System.out.println("============================================================================================================================");
+        
+        int totalCount = getTotalTransactionCount(accountId);
+        
+        if (totalCount == 0) {
+            System.out.println("거래내역이 없습니다.");
+            return;
+        }
         
         String sql = "SELECT * FROM transactions WHERE account_id = ? ORDER BY transaction_date DESC";
         
@@ -518,7 +500,7 @@ public class TransactionManager {
             pstmt.setString(1, accountId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 boolean hasTransactions = false;
-                int index = 1; 
+                int index = totalCount; 
                 
                 while (rs.next()) {
                     hasTransactions = true;
@@ -535,7 +517,6 @@ public class TransactionManager {
                     if (memo == null)
                         memo = "-";
 
-                    // 거래내역 출력
                     System.out.println(index + "번째 거래");
                     System.out.println("거래번호: " + rs.getString("transaction_id"));
                     System.out.println("거래구분: " + transactionType);
@@ -546,17 +527,34 @@ public class TransactionManager {
                     System.out.println("거래후잔액: " + BankUtils.formatCurrency(rs.getDouble("balance_after")));
                     System.out.println("============================================================================================================================");
                     
-                    index++;
+                    index--; 
                 }
                 
-                if (!hasTransactions) {
-                    System.out.println("거래내역이 없습니다.");
-                } else {
-                    System.out.println("총 " + (index - 1) + "건의 거래내역이 조회되었습니다.");
+                if (hasTransactions) {
+                    System.out.println("총 " + totalCount + "건의 거래내역이 조회되었습니다.");
                 }
             }
         } catch (SQLException e) {
-            System.out.println("거래내역 조회 오류: " + e.getMessage());
+            System.out.println("거래내역을 불러올 수 없습니다.");
+            System.out.println("시스템 점검 중이거나 일시적인 오류일 수 있습니다.");
+            System.out.println("인터넷뱅킹에서 확인하시거나 고객센터로 연락해주세요.");
+            System.out.println("고객센터: 1588-0000");
         }
+    }
+
+    // 전체 거래 건수 조회 메서드 추가
+    private int getTotalTransactionCount(String accountId) {
+        String sql = "SELECT COUNT(*) FROM transactions WHERE account_id = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, accountId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("거래 건수 조회 중 오류가 발생했습니다.");
+        }
+        return 0;
     }
 }

@@ -51,7 +51,7 @@ public class InputHelper {
     public String inputName() {
         String userName;
         do {
-            userName = input("이름: ");
+            userName = input("이름(20자리 이하): ");
             if (validator.validateUserName(userName)) {
                 return userName;
             }
@@ -73,7 +73,7 @@ public class InputHelper {
     public String inputEmail() {
         String email;
         do {
-            email = input("이메일: ");
+            email = input("이메일(test@example.com): ");
             if (validator.validateEmail(email)) {
                 return email;
             }
@@ -84,7 +84,7 @@ public class InputHelper {
     public String inputPhone() {
         String phone;
         do {
-            phone = input("전화번호: ");
+            phone = input("전화번호(010-0000-0000 형식): ");
             if (validator.validatePhone(phone)) {
                 return phone;
             }
@@ -149,26 +149,11 @@ public class InputHelper {
         } while (true);
     }
 
-    // 계좌 비밀번호 확인
-    public boolean checkPassword(String accountId) {
-        String password;
-        do {
-            System.out.print("계좌 비밀번호 (4자리): ");
-            password = scanner.nextLine();
-            if (password.length() != 4 || !password.matches("\\d{4}")) {
-                System.out.println("계좌 비밀번호는 4자리 숫자여야 합니다.");
-                continue;
-            }
-            // 실제 검증은 AccountManager
-            return true;  
-        } while (true);
-    }
-
     // 새 비밀번호 입력 (유효성 검사 포함)
     public String inputNewUserPassword(String loginId) {
         String input;
         do {
-            System.out.print("새 비밀번호 (7~12자리, 영문+숫자) 또는 엔터 (기존 유지): ");
+            System.out.print("새 비밀번호 또는 엔터 (기존 유지): ");
             input = scanner.nextLine().trim();
 
             if (input.isEmpty()) {  
@@ -202,7 +187,7 @@ public class InputHelper {
     public String inputNewUserPhone(String loginId) {
         String input;
         do {
-            System.out.print("새 전화번호 (010-0000-0000) 또는 엔터 (기존 유지): ");
+            System.out.print("새 전화번호 또는 엔터 (기존 유지): ");
             input = scanner.nextLine().trim();
 
             if (input.isEmpty()) {  

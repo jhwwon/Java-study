@@ -114,7 +114,6 @@ public class UserManager {
         StringBuilder sql = new StringBuilder("UPDATE users SET ");
         boolean hasChanges = false;
 
-        // 동적 SQL 생성
         if (user.getUserPassword() != null) {
             sql.append("user_password = ?");
             hasChanges = true;

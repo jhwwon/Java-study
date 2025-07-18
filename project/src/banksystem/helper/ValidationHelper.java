@@ -18,7 +18,7 @@ public class ValidationHelper {
             System.out.println("아이디는 4~8자리여야 합니다.");
             return false;
         }
-        // 대소문자 구분없는 영문자 최소 1개이상 포함, 숫자 최소 1개 이상 포함  ---> 영문자(대소문자)+숫자 조합
+        // 대소문자 구분없는 영문자 최소 1개이상 포함, 숫자 최소 1개 이상 포함  ---> 영문자(대소문자)+숫자 조합 (비밀번호도 동일)
         if (!userId.matches("^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]+$")) {
             System.out.println("아이디는 영문과 숫자가 모두 포함되어야 합니다.");
             return false;
@@ -60,7 +60,7 @@ public class ValidationHelper {
         }
         //기본적인 이메일 검증
         if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
-            System.out.println("올바른 이메일 형식이 아닙니다. (예: user@naver.com)");
+            System.out.println("올바른 이메일 형식이 아닙니다. (예: test@example.com)");
             return false;
         }
         String[] commonDomains = { ".com", ".net", ".org", ".edu", ".gov", ".co.kr", ".kr" };
